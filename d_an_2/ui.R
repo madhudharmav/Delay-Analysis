@@ -9,7 +9,7 @@
 #or run my laptop take care the app is running at the moment on R
 #runApp(appDir="C:/Users/Madhu/Documents/delay analysis/d_an",host="192.168.100.232",port=5050)
 
-
+library(DT)
 shinyUI(fluidPage(
   titlePanel("Delay Analysis"),
   sidebarLayout(
@@ -26,14 +26,17 @@ shinyUI(fluidPage(
   
   
     dateInput('enddate',
-              label = 'Date input: yyyy-mm-dd',
+              label = 'Date input: 7days ending on )',
               value = Sys.Date()
               
     ) ),
   
 
   mainPanel(tableOutput("table1"),
-            tableOutput("table2"))
+            DT::dataTableOutput("table2") 
+            
+            )
+ 
   )
   ))
     

@@ -1,5 +1,6 @@
 options(shiny.maxRequestSize=50*1024^2) # would increase the limit to 50MB.
 library(shiny)
+library(DT)
 shinyServer(function(input, output,session) {
   session$onSessionEnded(function() { 
     stopApp()
@@ -72,8 +73,9 @@ shinyServer(function(input, output,session) {
    
    selectweek<-(df_all$datei<=dates[2])&(df_all$datei>dates[1])
    df_week<-df_all[selectweek,]
-   
-    dat2plot<-list(df_week,levels(df_all$timeslot))
+   df_week<-subset(df_week,df_week$arr_delay<500)
+   df_week<-subset(df_week,df_week$real_arr_delay<500)
+   dat2plot<-list(df_week,levels(df_all$timeslot))
     
 })
  output$table1 <- renderTable({
@@ -110,7 +112,7 @@ shinyServer(function(input, output,session) {
  })
  
  
- output$table2 <- renderTable({
+ output$table2 <-DT::renderDataTable({
    dat2plot<-pre_pro()
    df_week<-dat2plot[[1]]
    df_week1<-df_week[df_week$arr_delay>0,]
@@ -131,10 +133,20 @@ shinyServer(function(input, output,session) {
      no_delay4c[i2]<-as.integer(df_week2[cluster == input$e2  & timeslot == i3 & timewin ==30, .N])
      no_delay4d[i2]<-as.integer(df_week2[cluster == input$e2  & timeslot == i3 & timewin ==120, .N])  
    }
-   op_table2<-cbind(timeslots,no_delay3,no_delay4a,no_delay4b ,round(no_delay4a/no_delay3*100,digits=2),round(no_delay4b/no_delay3*100,digits=2),no_delay4c,no_delay4d ,round(no_delay4c/no_delay3*100,digits=2),round(no_delay4d/no_delay3*100,digits=2))
-   colnames(op_table2)<-c("timeslot","Total Orders","No.Delays 1/2hr","No.Delays 2hr","% 1/2hr","% 2hr","real No.Delays 1/2hr","real No.Delays 2hr","real % 1/2hr","real %-2hr")
-   op_table2[which(op_table2==NaN)]<-"No orders"
+   op_table2<-cbind(timeslots,no_delay3,no_delay4a,no_delay4b,no_delay4c ,no_delay4d  )
+   op_table2<-data.table(op_table2)
+   shift_start<-c("06:00","10:00","14:00","17:00")
+   shift_end<-c("10:00","13:00","17:00","22:30")
+   ag_op_table2<-NULL
+   for(i2 in 1:length(shift_start)){
+     
+     ag_op_table2<-rbind(ag_op_table2,op_table2[timeslots>shift_start[i2]& timeslots<shift_end[i2],.(shift_start[i2],sum(as.numeric(no_delay3)),sum(as.numeric(no_delay4a)),sum(as.numeric(no_delay4b)),sum(as.numeric(no_delay4c)),sum(as.numeric(no_delay4d)))])
+   }
+   op_table2<-rbind(setnames(ag_op_table2,names(op_table2)),op_table2)
    
+   op_table2<-cbind(op_table2,round(as.numeric(op_table2$no_delay4a)/as.numeric(op_table2$no_delay3)*100,digits=2),round(as.numeric(op_table2$no_delay4b)/as.numeric(op_table2$no_delay3)*100,digits=2),round(as.numeric(op_table2$no_delay4c)/as.numeric(op_table2$no_delay3)*100,digits=2),round(as.numeric(op_table2$no_delay4d)/as.numeric(op_table2$no_delay3)*100,digits=2))
+   colnames(op_table2)<-c("timeslot","Total Orders","No.Delays 1/2hr","No.Delays 2hr","real No.Delays 1/2hr","real No.Delays 2hr","% 1/2hr","% 2hr","real % 1/2hr","real % 2hr")
+   op_table2[which(op_table2==NaN)]<-"No orders"
    return(op_table2)
  })
  
